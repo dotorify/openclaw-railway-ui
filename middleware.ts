@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import crypto from "node:crypto";
-
-function timingSafeEq(a: string, b: string) {
-  const ah = crypto.createHash("sha256").update(a).digest();
-  const bh = crypto.createHash("sha256").update(b).digest();
-  if (ah.length !== bh.length) return false;
-  return crypto.timingSafeEqual(ah, bh);
-}
 
 export function middleware(req: NextRequest) {
   const admin = process.env.UI_ADMIN_TOKEN;
@@ -28,7 +20,8 @@ export function middleware(req: NextRequest) {
   const idx = decoded.indexOf(":");
   const password = idx >= 0 ? decoded.slice(idx + 1) : "";
 
-  if (!timingSafeEq(password, admin)) {
+  // MVP: simple equality. (If we need constant-time compare, use WebCrypto in edge middleware.)
+  if (password !== admin) {
     return new NextResponse("Invalid credentials", {
       status: 401,
       headers: { "WWW-Authenticate": 'Basic realm="OpenClaw UI"' },
