@@ -1,50 +1,50 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { callRuntime } from "./lib/runtimeClient";
 
-async function fetchJson(path: string) {
-  const base = process.env.RUNTIME_BASE_URL;
-  const tok = process.env.RUNTIME_CONTROL_TOKEN;
-  if (!base) throw new Error("RUNTIME_BASE_URL is not set");
-  if (!tok) throw new Error("RUNTIME_CONTROL_TOKEN is not set");
+export default function Page() {
+  const [status, setStatus] = useState<any>(null);
+  const [summary, setSummary] = useState<any>(null);
 
-  const res = await fetch(`${base}${path}`, {
-    headers: { Authorization: `Bearer ${tok}` },
-    // UI is a control plane; we want fresh status.
-    cache: "no-store",
-  });
-  const json = await res.json();
-  return { ok: res.ok, status: res.status, json };
-}
-
-export default async function Page() {
-  const status = await fetchJson("/control/status");
-  const summary = await fetchJson("/control/config/summary");
+  useEffect(() => {
+    (async () => {
+      setStatus(await callRuntime({ path: "/control/status", method: "GET" }));
+      setSummary(
+        await callRuntime({ path: "/control/config/summary", method: "GET" }),
+      );
+    })();
+  }, []);
 
   return (
     <main>
       <h1 style={{ marginTop: 0 }}>OpenClaw Railway UI</h1>
 
+      <nav style={{ margin: "8px 0 16px", display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Link href="/setup">Setup</Link>
+        <Link href="/discord">Discord</Link>
+        <Link href="/models">Models</Link>
+        <Link href="/devices">Devices</Link>
+        <Link href="/agents">Agents</Link>
+        <Link href="/bindings">Bindings</Link>
+      </nav>
+
       <section style={{ padding: 16, border: "1px solid #ddd", borderRadius: 8 }}>
         <h2>Status</h2>
-        <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(status.json, null, 2)}</pre>
+        <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(status, null, 2)}</pre>
       </section>
 
       <section
         style={{ padding: 16, border: "1px solid #ddd", borderRadius: 8, marginTop: 16 }}
       >
         <h2>Config summary</h2>
-        <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(summary.json, null, 2)}</pre>
+        <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(summary, null, 2)}</pre>
       </section>
 
-      <nav style={{ marginTop: 16, display: "flex", gap: 12 }}>
-        <Link href="/discord">Discord</Link>
-        <Link href="/models">Models</Link>
-        <Link href="/agents">Agents</Link>
-        <Link href="/bindings">Bindings</Link>
-      </nav>
-
       <p style={{ marginTop: 16, color: "#444" }}>
-        Notes: This UI is protected by Basic Auth using <code>UI_ADMIN_TOKEN</code>. The
-        runtime is controlled via <code>/control/*</code> endpoints.
+        Auth: Basic Auth (password = <code>UI_ADMIN_TOKEN</code>). Runtime calls go through
+        <code> /api/runtime</code>.
       </p>
     </main>
   );

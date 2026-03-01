@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 
-async function callRuntime(path: string, method: string, body?: any) {
-  const res = await fetch("/api/runtime", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path, method, body }),
-  });
-  return await res.json();
-}
+import { callRuntime } from "../lib/runtimeClient";
 
 export default function DiscordPage() {
   const [token, setToken] = useState("");
@@ -20,9 +13,19 @@ export default function DiscordPage() {
     setBusy(true);
     try {
       const patch = { channels: { discord: { token } } };
-      const r1 = await callRuntime("/control/config", "PATCH", { patch });
-      const r2 = await callRuntime("/control/apply", "POST");
+      const r1 = await callRuntime({ path: "/control/config", method: "PATCH", body: { patch } });
+      const r2 = await callRuntime({ path: "/control/apply", method: "POST" });
       setOut({ patchResult: r1, applyResult: r2 });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function probe() {
+    setBusy(true);
+    try {
+      const r = await callRuntime({ path: "/control/channels/probe", method: "POST" });
+      setOut({ probe: r });
     } finally {
       setBusy(false);
     }
@@ -31,7 +34,9 @@ export default function DiscordPage() {
   return (
     <main>
       <h1>Discord</h1>
-      <p>Sets <code>channels.discord.token</code> in <code>openclaw.json</code> and restarts the gateway.</p>
+      <p>
+        Sets <code>channels.discord.token</code> in <code>openclaw.json</code>, restarts the gateway, and can run <code>openclaw channels status --probe</code>.
+      </p>
 
       <label style={{ display: "block", marginTop: 12 }}>
         Bot Token
@@ -44,9 +49,14 @@ export default function DiscordPage() {
         />
       </label>
 
-      <button disabled={busy || !token} onClick={save} style={{ marginTop: 12 }}>
-        {busy ? "Working..." : "Save & Apply"}
-      </button>
+      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        <button disabled={busy || !token} onClick={save}>
+          {busy ? "Working..." : "Save & Apply"}
+        </button>
+        <button disabled={busy} onClick={probe}>
+          Probe channels
+        </button>
+      </div>
 
       {out && (
         <pre style={{ marginTop: 16, whiteSpace: "pre-wrap" }}>{JSON.stringify(out, null, 2)}</pre>

@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-function runtimeBase() {
-  const base = process.env.RUNTIME_BASE_URL;
-  const tok = process.env.RUNTIME_CONTROL_TOKEN;
-  if (!base) throw new Error("RUNTIME_BASE_URL is not set");
-  if (!tok) throw new Error("RUNTIME_CONTROL_TOKEN is not set");
+function runtimeBase(body: any) {
+  const base = (body?.baseUrl || process.env.RUNTIME_BASE_URL || "").trim();
+  const tok = (body?.controlToken || process.env.RUNTIME_CONTROL_TOKEN || "").trim();
+  if (!base) throw new Error("Runtime base URL not set (set RUNTIME_BASE_URL or provide baseUrl)");
+  if (!tok) throw new Error("Runtime control token not set (set RUNTIME_CONTROL_TOKEN or provide controlToken)");
   return { base, tok };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { base, tok } = runtimeBase();
     const body = await req.json();
+    const { base, tok } = runtimeBase(body);
     const path = String(body?.path || "");
     const method = String(body?.method || "GET");
     const payload = body?.body;
